@@ -74,12 +74,28 @@ def	draw_measure_lines(svg, measures):
 	x0 = MEASURE_WIDTH / 2.0
 	x1 = x0 + MEASURE_WIDTH
 	pos = 0
+	index = 1
 	for m in measures:
 		y = height - pos
 		svg.add(svg.line((x0, y), (x1,y), stroke=svgwrite.rgb(20,20,20, '%')))
+		t = "%02d" % index
+		svg.add(svg.text(t, insert = (x0 - 7 * len(t), y), font_size = '12px'))
 		pos = pos + m[0]
+		index += 1
 	return svg
 
+def draw_bpm_text(svg, filename, measure_numbers):
+	pos = 0
+	height = measures_to_length(measure_numbers)
+	with open(filename, 'r') as f:
+		all_lines = f.readlines()
+		for line in all_lines:
+			if re.match("[0-2]{4}\\|.*", line) != None:
+				pos += int(pos_to_measure(pos,measure_numbers)[1])
+			elif line.startswith("t="):
+				svg.add(svg.text(line[2:], insert = (MEASURE_WIDTH * 1.5, height - pos), font_size = '12px'))
+	return svg
+	
 def main(filename, savePath):
 	pos = 0
 	measure_numbers = get_measure_numbers(filename)
@@ -111,6 +127,7 @@ def main(filename, savePath):
 	lane_x = MEASURE_WIDTH / 2.0	
 	
 	output = draw_measure_lines(output, measure_numbers)
+	output = draw_bpm_text(output, filename, measure_numbers)
 	
 	lasers = []
 	bt_holds = []
