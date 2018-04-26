@@ -172,16 +172,25 @@ def main(filename, savePath):
 					curr_laser = [map_laser(l), pos]
 					next_laser = get_next_laser(pos + to_add, all_datalines[line_index + 1:], measure_numbers, i)
 					if next_laser != None:
-						l_y0 = height - next_laser[1]
-						l_y1 = height - pos
-						l_x0 = next_laser[0] * (MEASURE_WIDTH - LASER_WIDTH) + lane_x + LASER_WIDTH * 0.5
-						l_x1 = curr_laser[0] * (MEASURE_WIDTH - LASER_WIDTH) + lane_x + LASER_WIDTH * 0.5
-						l_points = [(l_x0 - LASER_WIDTH * 0.5, l_y0), 
-						            (l_x0 + LASER_WIDTH * 0.5, l_y0),
-												(l_x1 + LASER_WIDTH * 0.5, l_y1), 
-												(l_x1 - LASER_WIDTH * 0.5, l_y1)]
-						lasers.append(output.polygon(l_points, fill=LASER_COLORS[i], fill_opacity=LASER_OPACITY))
-					
+						duration = next_laser[1] - curr_laser[1]
+						if duration > 6:
+							l_y0 = height - next_laser[1]
+							l_y1 = height - pos
+							l_x0 = next_laser[0] * (MEASURE_WIDTH - LASER_WIDTH) + lane_x + LASER_WIDTH * 0.5
+							l_x1 = curr_laser[0] * (MEASURE_WIDTH - LASER_WIDTH) + lane_x + LASER_WIDTH * 0.5
+							l_points = [(l_x0 - LASER_WIDTH * 0.5, l_y0), 
+													(l_x0 + LASER_WIDTH * 0.5, l_y0),
+													(l_x1 + LASER_WIDTH * 0.5, l_y1), 
+													(l_x1 - LASER_WIDTH * 0.5, l_y1)]
+							lasers.append(output.polygon(l_points, fill=LASER_COLORS[i], fill_opacity=LASER_OPACITY))
+						else: # Slam
+							l_y = height - next_laser[1]
+							l_h = duration
+							l_x = min(next_laser[0] * (MEASURE_WIDTH - LASER_WIDTH) + lane_x,
+							          curr_laser[0] * (MEASURE_WIDTH - LASER_WIDTH) + lane_x)
+							l_w = abs(curr_laser[0] - next_laser[0]) * MEASURE_WIDTH
+							lasers.append(output.rect((l_x,l_y),(l_w, l_h), fill=LASER_COLORS[i], fill_opacity=LASER_OPACITY))
+							
 			pos = pos + to_add
 			line_index += 1
 					
@@ -201,3 +210,4 @@ def main(filename, savePath):
 	output.save()
 	
 main(sys.argv[1], sys.argv[2])
+print("Finished!")
