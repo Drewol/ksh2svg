@@ -2,6 +2,10 @@ import sys
 import svgwrite
 import re
     
+#TODO: Make func that fills in laser expand ranges by
+#      looking for the laserrange line and then 
+#      progressing line by line till it reaches a '-' for that laser
+		
 LASER_VALUES = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmno"
 
 LASER_WIDTH = 7
@@ -36,7 +40,7 @@ def get_measure_numbers(filename):
                 numerator = int(tempo[0].split('=')[1].split('/')[0])
                 denominator = int(tempo[0].split('=')[1].split('/')[1])
             if(len(datalines) > 0):
-                result += [[192 * (numerator / denominator), (192 * (numerator / denominator)) / len(datalines)]]
+                result += [[192 * (numerator / denominator), (192 * (numerator / denominator)) / len(datalines), (numerator, denominator)]]
     return result
     
 def pos_to_measure(pos, measures):
@@ -71,15 +75,18 @@ def get_next_laser(pos, datalines, measure_numbers, laser):
 		
 def	draw_measure_lines(svg, measures):
 	height = measures_to_length(measures)
-	x0 = MEASURE_WIDTH / 2.0
-	x1 = x0 + MEASURE_WIDTH
+	x0 = MEASURE_WIDTH / 2.0 + LASER_WIDTH + 1
+	x1 = x0 + MEASURE_WIDTH - 2 * LASER_WIDTH - 2
 	pos = 0
 	index = 1
 	for m in measures:
 		y = height - pos
-		svg.add(svg.line((x0, y), (x1,y), stroke=svgwrite.rgb(20,20,20, '%')))
+		svg.add(svg.line((x0, y), (x1,y), stroke=svgwrite.rgb(100,100,100, '%')))
 		t = "%02d" % index
-		svg.add(svg.text(t, insert = (x0 - 7 * len(t), y), font_size = '12px'))
+		svg.add(svg.text(t, insert = (x0 - 7 * len(t) - LASER_WIDTH - 1, y), font_size = '12px'))
+		for i in range(1, m[2][0]):
+			y_c = y + (i / m[2][1]) * m[0]
+			svg.add(svg.line((x0, y_c), (x1,y_c), stroke=svgwrite.rgb(25,25,25, '%')))
 		pos = pos + m[0]
 		index += 1
 	return svg
@@ -92,7 +99,7 @@ def draw_bpm_text(svg, filename, measure_numbers):
 		for line in all_lines:
 			if re.match("[0-2]{4}\\|.*", line) != None:
 				pos += int(pos_to_measure(pos,measure_numbers)[1])
-			elif line.startswith("t="):
+			elif line.startswith("t=") and '-' not in line:
 				svg.add(svg.text(line[2:], insert = (MEASURE_WIDTH * 1.5, height - pos), font_size = '12px'))
 	return svg
 	
@@ -142,7 +149,7 @@ def main(filename, savePath):
 		all_lines = f.read()
 		all_datalines = re.findall("[0-2]{4}\\|.*", all_lines)
 		for line in all_datalines:
-			to_add = int(pos_to_measure(pos,measure_numbers)[1])
+			to_add = pos_to_measure(pos,measure_numbers)[1]
 			
 			#BTs
 			for i in range(4):
