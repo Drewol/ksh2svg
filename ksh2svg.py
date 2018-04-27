@@ -18,7 +18,8 @@ LASER_OPACITY = '0.33'
 BT_COLOR = svgwrite.rgb(100,100,100, '%')
 FX_COLOR = svgwrite.rgb(100,50,0, '%')
 FX_OPACITY = '0.75'
-
+EXIT_HEIGHT = 5
+ENTRY_HEIGHT = 5
 
 def get_measure_numbers(filename):
     result = []
@@ -63,14 +64,16 @@ def map_laser(l):
 	return result
 		
 def get_next_laser(pos, datalines, measure_numbers, laser):
+	counter = 1
 	for line in datalines:
 		to_add = int(pos_to_measure(pos,measure_numbers)[1])
 		l = line[8 + laser]
 		if l in LASER_VALUES:
-			return [map_laser(l), pos]
+			return [map_laser(l), pos, counter]
 		elif l == '-':
 			return None
 		pos += to_add
+		counter += 1
 	return None
 		
 def	draw_measure_lines(svg, measures):
@@ -244,8 +247,17 @@ def main(filename, savePath):
 							l_h = duration
 							l_x = min(next_laser[0] * (MEASURE_WIDTH - LASER_WIDTH) + lane_x,
 							          curr_laser[0] * (MEASURE_WIDTH - LASER_WIDTH) + lane_x)
-							l_w = abs(curr_laser[0] - next_laser[0]) * MEASURE_WIDTH
+							l_w = abs(curr_laser[0] - next_laser[0]) * (MEASURE_WIDTH - LASER_WIDTH) + LASER_WIDTH
 							lasers.append(output.rect((l_x,l_y),(l_w, l_h), fill=LASER_COLORS[i], fill_opacity=LASER_OPACITY))
+							#print("a: %s" % all_datalines[line_index + next_laser[2]])
+							#print("b: %s" % all_datalines[line_index + next_laser[2] + 1])
+							if all_datalines[line_index + next_laser[2] + 1][8+i] == '-': # add end segmento
+								e_x = next_laser[0] * (MEASURE_WIDTH - LASER_WIDTH) + lane_x;
+								lasers.append(output.rect((e_x, l_y - EXIT_HEIGHT), (LASER_WIDTH, EXIT_HEIGHT), fill=LASER_COLORS[i], fill_opacity=LASER_OPACITY))
+							if all_datalines[line_index - 1][8+i] == '-': # add start segment
+								e_x = curr_laser[0] * (MEASURE_WIDTH - LASER_WIDTH) + lane_x;
+								lasers.append(output.rect((e_x, l_y + duration), (LASER_WIDTH, ENTRY_HEIGHT), fill=LASER_COLORS[i], fill_opacity=LASER_OPACITY))
+								
 							
 			pos = pos + to_add
 			line_index += 1
