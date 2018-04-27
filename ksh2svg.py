@@ -228,15 +228,15 @@ def main(filename, savePath):
 								break
 						
 						duration = next_laser[1] - curr_laser[1]
+						if is_expanded:
+							l_x0 = next_laser[0] * (2 * MEASURE_WIDTH) - (next_laser[0] * LASER_WIDTH) + (LASER_WIDTH * (1 - next_laser[0]))
+							l_x1 = curr_laser[0] * (2 * MEASURE_WIDTH) - (curr_laser[0] * LASER_WIDTH) + (LASER_WIDTH * (1 - curr_laser[0]))
+						else:
+							l_x0 = next_laser[0] * (MEASURE_WIDTH - LASER_WIDTH) + lane_x + LASER_WIDTH * 0.5
+							l_x1 = curr_laser[0] * (MEASURE_WIDTH - LASER_WIDTH) + lane_x + LASER_WIDTH * 0.5
 						if duration > 6:
 							l_y0 = height - next_laser[1]
 							l_y1 = height - pos
-							if is_expanded:
-								l_x0 = next_laser[0] * 2 * (MEASURE_WIDTH - LASER_WIDTH) +  LASER_WIDTH
-								l_x1 = curr_laser[0] * 2 * (MEASURE_WIDTH - LASER_WIDTH) +  LASER_WIDTH
-							else:
-								l_x0 = next_laser[0] * (MEASURE_WIDTH - LASER_WIDTH) + lane_x + LASER_WIDTH * 0.5
-								l_x1 = curr_laser[0] * (MEASURE_WIDTH - LASER_WIDTH) + lane_x + LASER_WIDTH * 0.5
 							l_points = [(l_x0 - LASER_WIDTH * 0.5, l_y0), 
 													(l_x0 + LASER_WIDTH * 0.5, l_y0),
 													(l_x1 + LASER_WIDTH * 0.5, l_y1), 
@@ -245,17 +245,17 @@ def main(filename, savePath):
 						else: # Slam
 							l_y = height - next_laser[1]
 							l_h = duration
-							l_x = min(next_laser[0] * (MEASURE_WIDTH - LASER_WIDTH) + lane_x,
-							          curr_laser[0] * (MEASURE_WIDTH - LASER_WIDTH) + lane_x)
-							l_w = abs(curr_laser[0] - next_laser[0]) * (MEASURE_WIDTH - LASER_WIDTH) + LASER_WIDTH
+							l_x = min(l_x0, l_x1) - (LASER_WIDTH * 0.5)
+							l_w = abs(l_x0 - l_x1) + LASER_WIDTH
+
 							lasers.append(output.rect((l_x,l_y),(l_w, l_h), fill=LASER_COLORS[i], fill_opacity=LASER_OPACITY))
 							#print("a: %s" % all_datalines[line_index + next_laser[2]])
 							#print("b: %s" % all_datalines[line_index + next_laser[2] + 1])
 							if all_datalines[line_index + next_laser[2] + 1][8+i] == '-': # add end segmento
-								e_x = next_laser[0] * (MEASURE_WIDTH - LASER_WIDTH) + lane_x;
+								e_x = l_x0 - (LASER_WIDTH * 0.5);
 								lasers.append(output.rect((e_x, l_y - EXIT_HEIGHT), (LASER_WIDTH, EXIT_HEIGHT), fill=LASER_COLORS[i], fill_opacity=LASER_OPACITY))
 							if all_datalines[line_index - 1][8+i] == '-': # add start segment
-								e_x = curr_laser[0] * (MEASURE_WIDTH - LASER_WIDTH) + lane_x;
+								e_x = l_x1 - (LASER_WIDTH * 0.5);
 								lasers.append(output.rect((e_x, l_y + duration), (LASER_WIDTH, ENTRY_HEIGHT), fill=LASER_COLORS[i], fill_opacity=LASER_OPACITY))
 								
 							
