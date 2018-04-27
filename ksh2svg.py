@@ -102,10 +102,30 @@ def draw_bpm_text(svg, filename, measure_numbers):
 			elif line.startswith("t=") and '-' not in line:
 				svg.add(svg.text(line[2:], insert = (MEASURE_WIDTH * 1.5, height - pos), font_size = '12px'))
 	return svg
-	
+
+def get_expand_ranges(filename, measures):
+    pos = 0
+    height = measures_to_length(measures)
+    result = [[],[]]
+    filling_range = [(False, 0),(False, 0)]
+    with open(filename, 'r') as f:
+        all_lines = f.readlines()
+        for line in all_lines:
+            if re.match("[0-2]{4}\\|.*", line) != None:
+                pos += int(pos_to_measure(pos,measures)[1])
+                for i in range(2):
+                    if filling_range[i][0] and line[8+i] == '-':
+                        result[i].append((filling_range[i][1], pos))
+                        filling_range[i] = (False, 0)
+            elif line.startswith("laserrange_"):
+                i = 0 if line[11] == 'l' else 1
+                filling_range[i] = (True, pos)   
+    return result
+
 def main(filename, savePath):
 	pos = 0
 	measure_numbers = get_measure_numbers(filename)
+	expand_ranges = get_expand_ranges(filename, measure_numbers)
 	line_index = 0
 	height = measures_to_length(measure_numbers)
 	
@@ -196,12 +216,24 @@ def main(filename, savePath):
 					curr_laser = [map_laser(l), pos]
 					next_laser = get_next_laser(pos + to_add, all_datalines[line_index + 1:], measure_numbers, i)
 					if next_laser != None:
+						is_expanded = False
+						for r in expand_ranges[i]:
+							if curr_laser[1] > r[1]:
+								continue
+							elif curr_laser[1] >= r[0]:
+								is_expanded = True
+								break
+						
 						duration = next_laser[1] - curr_laser[1]
 						if duration > 6:
 							l_y0 = height - next_laser[1]
 							l_y1 = height - pos
-							l_x0 = next_laser[0] * (MEASURE_WIDTH - LASER_WIDTH) + lane_x + LASER_WIDTH * 0.5
-							l_x1 = curr_laser[0] * (MEASURE_WIDTH - LASER_WIDTH) + lane_x + LASER_WIDTH * 0.5
+							if is_expanded:
+								l_x0 = next_laser[0] * 2 * (MEASURE_WIDTH - LASER_WIDTH) +  LASER_WIDTH
+								l_x1 = curr_laser[0] * 2 * (MEASURE_WIDTH - LASER_WIDTH) +  LASER_WIDTH
+							else:
+								l_x0 = next_laser[0] * (MEASURE_WIDTH - LASER_WIDTH) + lane_x + LASER_WIDTH * 0.5
+								l_x1 = curr_laser[0] * (MEASURE_WIDTH - LASER_WIDTH) + lane_x + LASER_WIDTH * 0.5
 							l_points = [(l_x0 - LASER_WIDTH * 0.5, l_y0), 
 													(l_x0 + LASER_WIDTH * 0.5, l_y0),
 													(l_x1 + LASER_WIDTH * 0.5, l_y1), 
