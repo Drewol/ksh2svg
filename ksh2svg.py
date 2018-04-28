@@ -36,7 +36,7 @@ def get_measure_numbers(filename):
             denominator = int(tempo[0].split('=')[1].split('/')[1])
         for measure in measures: 
             datalines = re.findall("[0-2]{4}\\|.*", measure)
-            tempo = re.findall("beat\\=./.", measure)
+            tempo = re.findall("beat\\=.*/.*", measure)
             if len(tempo) > 0:
                 numerator = int(tempo[0].split('=')[1].split('/')[0])
                 denominator = int(tempo[0].split('=')[1].split('/')[1])
@@ -50,6 +50,7 @@ def pos_to_measure(pos, measures):
         now -= measure[0]
         if now < 0:
             return measure
+    return measures[-1]
 
 def measures_to_length(measures):
     result = 0
@@ -66,7 +67,7 @@ def map_laser(l):
 def get_next_laser(pos, datalines, measure_numbers, laser):
 	counter = 1
 	for line in datalines:
-		to_add = int(pos_to_measure(pos,measure_numbers)[1])
+		to_add = pos_to_measure(pos,measure_numbers)[1]
 		l = line[8 + laser]
 		if l in LASER_VALUES:
 			return [map_laser(l), pos, counter]
@@ -88,7 +89,7 @@ def	draw_measure_lines(svg, measures):
 		t = "%02d" % index
 		svg.add(svg.text(t, insert = (x0 - 7 * len(t) - LASER_WIDTH - 1, y)))
 		for i in range(1, m[2][0]):
-			y_c = y + (i / m[2][1]) * m[0]
+			y_c = y - (i / m[2][1]) * 192.0
 			svg.add(svg.line((x0, y_c), (x1,y_c), stroke=svgwrite.rgb(25,25,25, '%')))
 		pos = pos + m[0]
 		index += 1
@@ -101,7 +102,7 @@ def draw_bpm_text(svg, filename, measure_numbers):
 		all_lines = f.readlines()
 		for line in all_lines:
 			if re.match("[0-2]{4}\\|.*", line) != None:
-				pos += int(pos_to_measure(pos,measure_numbers)[1])
+				pos += pos_to_measure(pos,measure_numbers)[1]
 			elif line.startswith("t=") and '-' not in line:
 				svg.add(svg.text(line[2:], insert = (MEASURE_WIDTH * 1.5, height - pos), class_="bpm_text", fill='lime'))
 	return svg
@@ -115,7 +116,7 @@ def get_expand_ranges(filename, measures):
         all_lines = f.readlines()
         for line in all_lines:
             if re.match("[0-2]{4}\\|.*", line) != None:
-                pos += int(pos_to_measure(pos,measures)[1])
+                pos += pos_to_measure(pos,measures)[1]
                 for i in range(2):
                     if filling_range[i][0] and line[8+i] == '-':
                         result[i].append((filling_range[i][1], pos))
@@ -248,7 +249,7 @@ text
 						else:
 							l_x0 += lane_x
 							l_x1 += lane_x
-						if duration > 6:
+						if duration > 6 and next_laser[2] > 1:
 							l_y0 = height - next_laser[1]
 							l_y1 = height - pos
 							l_points = [(l_x0 - LASER_WIDTH * 0.5, l_y0), 
@@ -263,8 +264,6 @@ text
 							l_w = abs(l_x0 - l_x1) + LASER_WIDTH
 
 							lasers.append(output.rect((l_x,l_y),(l_w, l_h), fill=LASER_COLORS[i], fill_opacity=LASER_OPACITY))
-							#print("a: %s" % all_datalines[line_index + next_laser[2]])
-							#print("b: %s" % all_datalines[line_index + next_laser[2] + 1])
 							if all_datalines[line_index + next_laser[2] + 1][8+i] == '-': # add end segmento
 								e_x = l_x0 - (LASER_WIDTH * 0.5);
 								lasers.append(output.rect((e_x, l_y - EXIT_HEIGHT), (LASER_WIDTH, EXIT_HEIGHT), fill=LASER_COLORS[i], fill_opacity=LASER_OPACITY))
