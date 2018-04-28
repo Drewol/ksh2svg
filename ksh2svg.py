@@ -86,7 +86,7 @@ def	draw_measure_lines(svg, measures):
 		y = height - pos
 		svg.add(svg.line((x0, y), (x1,y), stroke=svgwrite.rgb(100,100,100, '%')))
 		t = "%02d" % index
-		svg.add(svg.text(t, insert = (x0 - 7 * len(t) - LASER_WIDTH - 1, y), font_size = '12px'))
+		svg.add(svg.text(t, insert = (x0 - 7 * len(t) - LASER_WIDTH - 1, y)))
 		for i in range(1, m[2][0]):
 			y_c = y + (i / m[2][1]) * m[0]
 			svg.add(svg.line((x0, y_c), (x1,y_c), stroke=svgwrite.rgb(25,25,25, '%')))
@@ -103,7 +103,7 @@ def draw_bpm_text(svg, filename, measure_numbers):
 			if re.match("[0-2]{4}\\|.*", line) != None:
 				pos += int(pos_to_measure(pos,measure_numbers)[1])
 			elif line.startswith("t=") and '-' not in line:
-				svg.add(svg.text(line[2:], insert = (MEASURE_WIDTH * 1.5, height - pos), font_size = '12px'))
+				svg.add(svg.text(line[2:], insert = (MEASURE_WIDTH * 1.5, height - pos), class_="bpm_text", fill='lime'))
 	return svg
 
 def get_expand_ranges(filename, measures):
@@ -132,7 +132,19 @@ def main(filename, savePath):
 	line_index = 0
 	height = measures_to_length(measure_numbers)
 	
-	output = svgwrite.Drawing(savePath, size=(u'%dpx' % (MEASURE_WIDTH * 2), u'%dpx' % height), profile='tiny')
+	output = svgwrite.Drawing(savePath, size=(u'%dpx' % (MEASURE_WIDTH * 2), u'%dpx' % height), profile='full')
+	css = """
+text
+{
+	font-family: Noto Mono, Sans Serif;
+	font-size: 10px;
+}
+.bpm_text
+{
+	font-size: 8px;
+}
+	"""
+	output.defs.add(output.style(css))
 	lane_x = MEASURE_WIDTH / 2.0
 	lane_w = MEASURE_WIDTH
 	lane_y = 0
