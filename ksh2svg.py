@@ -228,12 +228,14 @@ def main(filename, savePath):
 								break
 						
 						duration = next_laser[1] - curr_laser[1]
+						l_x0 = next_laser[0] * (MEASURE_WIDTH - LASER_WIDTH) + LASER_WIDTH * 0.5
+						l_x1 = curr_laser[0] * (MEASURE_WIDTH - LASER_WIDTH) + LASER_WIDTH * 0.5
 						if is_expanded:
-							l_x0 = next_laser[0] * (2 * MEASURE_WIDTH) - (next_laser[0] * LASER_WIDTH) + (LASER_WIDTH * (1 - next_laser[0]))
-							l_x1 = curr_laser[0] * (2 * MEASURE_WIDTH) - (curr_laser[0] * LASER_WIDTH) + (LASER_WIDTH * (1 - curr_laser[0]))
+							l_x0 *= 2
+							l_x1 *= 2
 						else:
-							l_x0 = next_laser[0] * (MEASURE_WIDTH - LASER_WIDTH) + lane_x + LASER_WIDTH * 0.5
-							l_x1 = curr_laser[0] * (MEASURE_WIDTH - LASER_WIDTH) + lane_x + LASER_WIDTH * 0.5
+							l_x0 += lane_x
+							l_x1 += lane_x
 						if duration > 6:
 							l_y0 = height - next_laser[1]
 							l_y1 = height - pos
