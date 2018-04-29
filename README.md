@@ -1,7 +1,7 @@
 ## KSH2SVG
 Converts your K-Shoot MANIA chart files to SVG files.
 
-![KSH Text](https://i.imgur.com/jZovqMg.png) &rarr; ![SVG Result](https://i.imgur.com/BSqS73e.png)
+![Example conversion result](https://drewol.s-ul.eu/ztjqbhSL.png)
 
 ### How to use
 Written for Python 3.5  
