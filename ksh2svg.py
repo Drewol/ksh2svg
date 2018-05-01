@@ -2,10 +2,6 @@ import sys
 import svgwrite
 import re
     
-#TODO: Make func that fills in laser expand ranges by
-#      looking for the laserrange line and then 
-#      progressing line by line till it reaches a '-' for that laser
-		
 LASER_VALUES = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmno"
 
 LASER_WIDTH = 7
