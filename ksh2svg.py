@@ -118,11 +118,12 @@ def get_expand_ranges(filename, measures):
         all_lines = f.readlines()
         for line in all_lines:
             if re.match("[0-2]{4}\\|.*", line) != None:
-                pos += pos_to_measure(pos,measures)[1]
                 for i in range(2):
                     if filling_range[i][0] and line[8+i] == '-':
                         result[i].append((filling_range[i][1], pos))
                         filling_range[i] = (False, 0)
+                pos += pos_to_measure(pos,measures)[1]
+
             elif line.startswith("laserrange_"):
                 i = 0 if line[11] == 'l' else 1
                 filling_range[i] = (True, pos)   
@@ -239,9 +240,12 @@ text
 						for r in expand_ranges[i]:
 							if curr_laser[1] > r[1]:
 								continue
-							elif curr_laser[1] >= r[0]:
+							if next_laser[1] < r[0]:
+								break
+							if curr_laser[1] >= r[0] and next_laser[1] <= r[1]:
 								is_expanded = True
 								break
+							
 						
 						duration = next_laser[1] - curr_laser[1]
 						l_x0 = next_laser[0] * (MEASURE_WIDTH - LASER_WIDTH) + LASER_WIDTH * 0.5
