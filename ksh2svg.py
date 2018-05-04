@@ -77,16 +77,20 @@ def	draw_measure_lines(svg, measures):
 	height = measures_to_length(measures)
 	x0 = MEASURE_WIDTH / 2.0 + LASER_WIDTH + 1
 	x1 = x0 + MEASURE_WIDTH - 2 * LASER_WIDTH - 2
+	text_g = svg.g(class_="measure_numbering")
+	lines_g = svg.g(class_="measure_lines")
+	svg.add(text_g)
+	svg.add(lines_g)
 	pos = 0
 	index = 1
 	for m in measures:
 		y = height - pos
-		svg.add(svg.line((x0, y), (x1,y), stroke=svgwrite.rgb(100,100,100, '%')))
+		lines_g.add(svg.line((x0, y), (x1,y), stroke=svgwrite.rgb(100,100,100, '%')))
 		t = "%02d" % index
-		svg.add(svg.text(t, insert = (x0 - 7 * len(t) - LASER_WIDTH - 1, y)))
+		text_g.add(svg.text(t, insert = (x0 - 7 * len(t) - LASER_WIDTH - 1, y)))
 		for i in range(1, m[2][0]):
 			y_c = y - (i / m[2][1]) * 192.0
-			svg.add(svg.line((x0, y_c), (x1,y_c), stroke=svgwrite.rgb(25,25,25, '%')))
+			lines_g.add(svg.line((x0, y_c), (x1,y_c), stroke=svgwrite.rgb(25,25,25, '%')))
 		pos = pos + m[0]
 		index += 1
 	return svg
@@ -94,13 +98,15 @@ def	draw_measure_lines(svg, measures):
 def draw_bpm_text(svg, filename, measure_numbers):
 	pos = 0
 	height = measures_to_length(measure_numbers)
+	g = svg.g(class_="bpm_text")
+	svg.add(g)
 	with open(filename, 'r') as f:
 		all_lines = f.readlines()
 		for line in all_lines:
 			if re.match("[0-2]{4}\\|.*", line) != None:
 				pos += pos_to_measure(pos,measure_numbers)[1]
 			elif line.startswith("t=") and '-' not in line:
-				svg.add(svg.text(line[2:], insert = (MEASURE_WIDTH * 1.5, height - pos), class_="bpm_text", fill='lime'))
+				g.add(svg.text(line[2:], insert = (MEASURE_WIDTH * 1.5, height - pos)))
 	return svg
 
 def get_expand_ranges(filename, measures):
@@ -133,12 +139,13 @@ def main(filename, savePath):
 	css = """
 text
 {
-	font-family: Noto Mono, Sans Serif;
+	font-family: Noto Mono, monospace;
 	font-size: 10px;
 }
 .bpm_text
 {
 	font-size: 8px;
+	fill: lime;
 }
 	"""
 	output.defs.add(output.style(css))
@@ -146,33 +153,33 @@ text
 	lane_w = MEASURE_WIDTH
 	lane_y = 0
 	lane_h = height
-	
-	output.add(output.rect((lane_x,lane_y),(lane_w,lane_h), fill=svgwrite.rgb(5,5,5,'%')))
+	measure_g = output.g(class_="measure")
+	measure_g.add(output.rect((lane_x,lane_y),(lane_w,lane_h), fill=svgwrite.rgb(5,5,5,'%')))
 
 	#Left Laser lane
-	output.add(output.rect((lane_x,lane_y), (LASER_WIDTH, lane_h), fill=svgwrite.rgb(5,10,25,'%')))
+	measure_g.add(output.rect((lane_x,lane_y), (LASER_WIDTH, lane_h), fill=svgwrite.rgb(5,10,25,'%')))
 	lane_x = lane_x + LASER_WIDTH
-	output.add(output.rect((lane_x,lane_y), (1, lane_h), fill=svgwrite.rgb(40,40,40,'%')))
+	measure_g.add(output.rect((lane_x,lane_y), (1, lane_h), fill=svgwrite.rgb(40,40,40,'%')))
 	lane_x = lane_x + 1
 	#Button lanes
 	for i in range(4):
 		lane_x = lane_x + BUTTON_WIDTH
-		output.add(output.rect((lane_x,lane_y), (1, lane_h), fill=svgwrite.rgb(40,40,40,'%')))
+		measure_g.add(output.rect((lane_x,lane_y), (1, lane_h), fill=svgwrite.rgb(40,40,40,'%')))
 		lane_x = lane_x + 1
 	
 	#Right Laser lane
-	output.add(output.rect((lane_x,lane_y), (LASER_WIDTH, lane_h), fill=svgwrite.rgb(25,5,10,'%')))
-	
+	measure_g.add(output.rect((lane_x,lane_y), (LASER_WIDTH, lane_h), fill=svgwrite.rgb(25,5,10,'%')))
+	output.add(measure_g)
 	lane_x = MEASURE_WIDTH / 2.0	
 	
 	output = draw_measure_lines(output, measure_numbers)
 	output = draw_bpm_text(output, filename, measure_numbers)
 	
-	lasers = []
-	bt_holds = []
-	bt_chips = []
-	fx_holds = []
-	fx_chips = []
+	lasers = (output.g(class_="lasers_l"), output.g(class_="lasers_r"))
+	bt_holds = output.g(class_="bt_holds")
+	bt_chips = output.g(class_="bt_chips")
+	fx_holds = output.g(class_="fx_holds")
+	fx_chips = output.g(class_="fx_chips")
 	
 	fx_hold_active = [(False, 0), (False, 0)]
 	bt_hold_active = [(False, 0), (False, 0), (False, 0), (False, 0)]
@@ -191,14 +198,14 @@ text
 				if (l == '0') and bt_hold_active[i][0]: # End Hold
 					bt_h = pos - bt_hold_active[i][1]
 					bt_y = height - pos
-					bt_holds.append(output.rect((bt_x,bt_y),(BUTTON_WIDTH, bt_h), fill=BT_COLOR))
+					bt_holds.add(output.rect((bt_x,bt_y),(BUTTON_WIDTH, bt_h), fill=BT_COLOR))
 					bt_hold_active[i] = (False, 0)
 				elif (l == '2') and bt_hold_active[i][0] == False: # Start Hold
 					bt_hold_active[i] = (True, pos)
 								
 				if l == '1': # BT Chip
 					bt_y = height - pos - CHIP_HEIGHT
-					bt_chips.append(output.rect((bt_x,bt_y),(BUTTON_WIDTH, CHIP_HEIGHT), fill=BT_COLOR))			
+					bt_chips.add(output.rect((bt_x,bt_y),(BUTTON_WIDTH, CHIP_HEIGHT), fill=BT_COLOR))			
 				
 			#FXs
 			for i in range(2):
@@ -208,7 +215,7 @@ text
 				if (l == '2' or l == '0') and fx_hold_active[i][0]: # End Hold
 					fx_h = pos - fx_hold_active[i][1]
 					fx_y = height - pos
-					fx_holds.append(output.rect((fx_x,fx_y),(FX_WIDTH, fx_h), fill=FX_COLOR, fill_opacity=FX_OPACITY))
+					fx_holds.add(output.rect((fx_x,fx_y),(FX_WIDTH, fx_h), fill=FX_COLOR, fill_opacity=FX_OPACITY))
 					fx_hold_active[i] = (False, 0)
 
 				elif (l != '0' and l != '2') and fx_hold_active[i][0] == False: # Start Hold
@@ -216,7 +223,7 @@ text
 				
 				if l == '2': # FX Chip
 					fx_y = height - pos - CHIP_HEIGHT
-					fx_chips.append(output.rect((fx_x,fx_y),(FX_WIDTH, CHIP_HEIGHT), fill=FX_COLOR))			
+					fx_chips.add(output.rect((fx_x,fx_y),(FX_WIDTH, CHIP_HEIGHT), fill=FX_COLOR))			
 
 			
 			#Lasers
@@ -252,20 +259,20 @@ text
 													(l_x0 + LASER_WIDTH * 0.5, l_y0),
 													(l_x1 + LASER_WIDTH * 0.5, l_y1), 
 													(l_x1 - LASER_WIDTH * 0.5, l_y1)]
-							lasers.append(output.polygon(l_points, fill=LASER_COLORS[i], fill_opacity=LASER_OPACITY))
+							lasers[i].add(output.polygon(l_points, fill=LASER_COLORS[i], fill_opacity=LASER_OPACITY))
 						else: # Slam
 							l_y = height - next_laser[1]
 							l_h = duration
 							l_x = min(l_x0, l_x1) - (LASER_WIDTH * 0.5)
 							l_w = abs(l_x0 - l_x1) + LASER_WIDTH
 
-							lasers.append(output.rect((l_x,l_y),(l_w, l_h), fill=LASER_COLORS[i], fill_opacity=LASER_OPACITY))
+							lasers[i].add(output.rect((l_x,l_y),(l_w, l_h), fill=LASER_COLORS[i], fill_opacity=LASER_OPACITY))
 							if all_datalines[line_index + next_laser[2] + 1][8+i] == '-': # add end segmento
 								e_x = l_x0 - (LASER_WIDTH * 0.5);
-								lasers.append(output.rect((e_x, l_y - EXIT_HEIGHT), (LASER_WIDTH, EXIT_HEIGHT), fill=LASER_COLORS[i], fill_opacity=LASER_OPACITY))
+								lasers[i].add(output.rect((e_x, l_y - EXIT_HEIGHT), (LASER_WIDTH, EXIT_HEIGHT), fill=LASER_COLORS[i], fill_opacity=LASER_OPACITY))
 							if all_datalines[line_index - 1][8+i] == '-': # add start segment
 								e_x = l_x1 - (LASER_WIDTH * 0.5);
-								lasers.append(output.rect((e_x, l_y + duration), (LASER_WIDTH, ENTRY_HEIGHT), fill=LASER_COLORS[i], fill_opacity=LASER_OPACITY))
+								lasers[i].add(output.rect((e_x, l_y + duration), (LASER_WIDTH, ENTRY_HEIGHT), fill=LASER_COLORS[i], fill_opacity=LASER_OPACITY))
 								
 							
 			pos = pos + to_add
@@ -273,16 +280,12 @@ text
 					
 	# add everything to separate lists and then
 	# add them to output here for proper layering
-	for hold in fx_holds:
-		output.add(hold)
-	for hold in bt_holds:
-		output.add(hold)
-	for laser in lasers:
-		output.add(laser)
-	for chip in fx_chips:
-		output.add(chip)
-	for chip in bt_chips:
-		output.add(chip)
+	output.add(fx_holds)
+	output.add(bt_holds)
+	output.add(lasers[0])
+	output.add(lasers[1])
+	output.add(fx_chips)
+	output.add(bt_chips)
 	
 	output.save()
 	
